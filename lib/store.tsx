@@ -26,11 +26,12 @@ interface AppState {
 interface AppContextValue extends AppState {
   setUser: (user: User | null) => void
   logout: () => Promise<void>
-  setTeam: (team: Team) => Promise<void>
+  setTeam: (team: Team) => Promise<Team | null>
   setOnboarded: (val: boolean) => void
   updateLeadStatus: (leadId: string, status: LeadStatus) => Promise<void>
   updateLeadNotes: (leadId: string, notes: string) => Promise<void>
   bulkUpdateLeadStatus: (leadIds: string[], status: LeadStatus) => Promise<void>
+  deleteLeads: (leadIds: string[]) => Promise<void>
   addLeads: (newLeads: Lead[]) => Promise<void>
   addDraft: (draft: OutreachDraft) => Promise<void>
   updateDraftStatus: (draftId: string, status: "draft" | "reviewed" | "sent") => Promise<void>
@@ -178,8 +179,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await loadData()
   }, [loadData])
 
-  const setTeam = useCallback(async (team: Team) => {
-    if (!state.user) return
+  const setTeam = useCallback(async (team: Team): Promise<Team | null> => {
+    if (!state.user) return null
 
     try {
       const dbTeam = teamToDbTeam(team, state.user.id)
@@ -193,7 +194,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (data) {
         const updatedTeam = dbTeamToTeam(data)
         setState((prev) => ({ ...prev, team: updatedTeam, isOnboarded: true }))
+        return updatedTeam
       }
+      return null
     } catch (error) {
       console.error("Error saving team:", error)
       throw error
@@ -256,6 +259,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }))
     } catch (error) {
       console.error("Error bulk updating leads:", error)
+      throw error
+    }
+  }, [supabase])
+
+  const deleteLeads = useCallback(async (leadIds: string[]) => {
+    if (leadIds.length === 0) return
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .delete()
+        .in("id", leadIds)
+
+      if (error) throw error
+      setState((prev) => ({
+        ...prev,
+        leads: prev.leads.filter((l) => !leadIds.includes(l.id)),
+      }))
+    } catch (error) {
+      console.error("Error deleting leads:", error)
       throw error
     }
   }, [supabase])
@@ -422,6 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateLeadStatus,
         updateLeadNotes,
         bulkUpdateLeadStatus,
+        deleteLeads,
         addLeads,
         addDraft,
         updateDraftStatus,

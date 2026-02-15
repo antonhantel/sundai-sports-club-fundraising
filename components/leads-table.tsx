@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LeadStatusBadge } from "@/components/lead-status-badge"
 import { toast } from "sonner"
-import { Search, CheckCircle, Sparkles, Loader2, Plus } from "lucide-react"
+import { Search, CheckCircle, Sparkles, Loader2, Plus, Trash2 } from "lucide-react"
 import type { Lead } from "@/lib/types"
 
 const newLeadPool: Omit<Lead, "id" | "createdAt">[] = [
@@ -53,11 +53,12 @@ const newLeadPool: Omit<Lead, "id" | "createdAt">[] = [
 ]
 
 export function LeadsTable() {
-  const { leads, bulkUpdateLeadStatus, addLeads } = useApp()
+  const { leads, bulkUpdateLeadStatus, deleteLeads, addLeads } = useApp()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const filtered = leads.filter(
     (l) =>
@@ -107,6 +108,20 @@ export function LeadsTable() {
       toast.error("Failed to generate outreach")
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      const ids = Array.from(selected)
+      setIsDeleting(true)
+      await deleteLeads(ids)
+      setSelected(new Set())
+      toast.success(`${ids.length} lead${ids.length > 1 ? "s" : ""} deleted`)
+    } catch (error) {
+      toast.error("Failed to delete leads")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -165,6 +180,20 @@ export function LeadsTable() {
               <Sparkles className="h-3.5 w-3.5" />
             )}
             Generate Outreach
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            Delete
           </Button>
         </div>
       )}
