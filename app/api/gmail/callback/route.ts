@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const oauth2Client = getOAuth2Client()
+    // Use the same redirect URI that was used to generate the auth URL
+    const origin = request.nextUrl.origin
+    const redirectUri = `${origin}/api/gmail/callback`
+    const oauth2Client = getOAuth2Client(redirectUri)
     const { tokens } = await oauth2Client.getToken(code)
 
     const cookieStore = await cookies()

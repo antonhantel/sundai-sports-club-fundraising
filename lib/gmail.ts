@@ -1,15 +1,15 @@
 import { google } from "googleapis"
 
-export function getOAuth2Client() {
+export function getOAuth2Client(redirectUri?: string) {
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    redirectUri || process.env.GOOGLE_REDIRECT_URI
   )
 }
 
-export function getAuthUrl() {
-  const oauth2Client = getOAuth2Client()
+export function getAuthUrl(redirectUri: string) {
+  const oauth2Client = getOAuth2Client(redirectUri)
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
