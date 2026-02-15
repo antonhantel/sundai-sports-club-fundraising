@@ -64,3 +64,17 @@ export interface AgentLog {
   detail: string
   timestamp: string
 }
+
+export interface Donation {
+  sessionId: string
+  amount: number
+  currency: string
+  teamName: string
+  customerEmail: string | null
+  createdAt: string
+}
+
+export interface CheckoutSessionRequest {
+  amount: number
+  teamName: string
+}
