@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { dbAssetToAsset, assetToDbAsset } from "@/lib/supabase/helpers"
 import { getJerseyPrompt } from "@/lib/jersey-prompt"
 import { GoogleGenAI } from "@google/genai"
+import type { AssetType } from "@/lib/types"
 
 export async function GET() {
   try {
@@ -47,9 +48,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { type, teamId, name, url, sponsorName } = body
-
     const supabase = await createClient()
     
     // Get current user
@@ -69,11 +67,99 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 })
     }
 
-    let assetUrl = url
-    let assetName = name || `Generated ${type} - ${new Date().toLocaleDateString()}`
+    // Check if this is a file upload (FormData) or JSON request
+    const contentType = request.headers.get("content-type") || ""
+    let type: AssetType
+    let assetName: string | undefined
+    let assetUrl: string | undefined
+    let sponsorName: string | undefined
 
-    // Generate jersey mockup using nanobanana
-    if (type === "jersey-mockup") {
+    if (contentType.includes("multipart/form-data")) {
+      // Handle file upload
+      const formData = await request.formData()
+      const file = formData.get("file") as File
+      const typeStr = formData.get("type") as string
+      assetName = formData.get("name") as string
+
+      if (!file) {
+        return NextResponse.json({ error: "File is required" }, { status: 400 })
+      }
+
+      if (!typeStr || (typeStr !== "proposal" && typeStr !== "jersey-mockup" && typeStr !== "logo" && typeStr !== "media")) {
+        return NextResponse.json({ error: "Valid asset type is required (proposal, jersey-mockup, logo, or media)" }, { status: 400 })
+      }
+      
+      type = typeStr as AssetType
+
+      // Validate file type (images only for now)
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json({ error: "Only image files are supported" }, { status: 400 })
+      }
+
+      // Convert file to buffer
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      // Determine file extension
+      const fileExt = file.name.split(".").pop() || "png"
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      
+      // Determine folder based on type
+      let folder = "assets"
+      if (type === "jersey-mockup") {
+        folder = "jerseys"
+      } else if (type === "logo") {
+        folder = "logos"
+      } else if (type === "proposal") {
+        folder = "proposals"
+      } else if (type === "media") {
+        folder = "media"
+      }
+
+      const fileName = `${type}-${uniqueId}.${fileExt}`
+      const filePath = `teams/${team.id}/${folder}/${fileName}`
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("assets")
+        .upload(filePath, buffer, {
+          contentType: file.type,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error("Supabase storage upload error:", uploadError)
+        return NextResponse.json(
+          { error: `Failed to upload file: ${uploadError.message}` },
+          { status: 500 }
+        )
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("assets")
+        .getPublicUrl(filePath)
+
+      if (!urlData?.publicUrl) {
+        return NextResponse.json(
+          { error: "Failed to get public URL for uploaded file" },
+          { status: 500 }
+        )
+      }
+
+      assetUrl = urlData.publicUrl
+      assetName = assetName || `${type} - ${new Date().toLocaleDateString()}`
+    } else {
+      // Handle JSON request (jersey generation)
+      const body = await request.json()
+      type = body.type as AssetType
+      assetName = body.name
+      assetUrl = body.url
+      sponsorName = body.sponsorName
+    }
+
+    // Generate jersey mockup using nanobanana (only if not already uploaded)
+    if (type === "jersey-mockup" && !assetUrl) {
       try {
         // Add subtle variation to prompt to ensure different results each time
         // Since Gemini image generation doesn't support temperature, we add minimal randomness to the prompt
@@ -307,7 +393,7 @@ export async function POST(request: Request) {
             }
 
             assetUrl = urlData.publicUrl
-            assetName = name || `Jersey Mockup - ${team.name}${sponsorName ? ` x ${sponsorName}` : ""}`
+            assetName = assetName || `Jersey Mockup - ${team.name}${sponsorName ? ` x ${sponsorName}` : ""}`
             
             console.log("Asset URL set:", assetUrl)
           }
@@ -327,13 +413,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // TODO: For proposals - use OpenAI to generate PDF content
-    // TODO: Store other assets in Supabase storage
-
-    // For jersey-mockup, ensure we have a valid URL (should have been set during generation)
-    if (type === "jersey-mockup" && !assetUrl) {
+    // Ensure we have a valid URL
+    if (!assetUrl) {
       return NextResponse.json(
-        { error: "Failed to generate or upload jersey image. No URL available." },
+        { error: "Failed to upload or generate asset. No URL available." },
         { status: 500 }
       )
     }
@@ -341,8 +424,8 @@ export async function POST(request: Request) {
     const asset = {
       teamId: team.id,
       type,
-      name: assetName,
-      url: assetUrl || `/assets/${type}-${Date.now()}`,
+      name: assetName || `${type} - ${new Date().toLocaleDateString()}`,
+      url: assetUrl,
     }
 
     // Save to database

@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS outreach_drafts (
 CREATE TABLE IF NOT EXISTS assets (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('proposal', 'jersey-mockup', 'logo')),
+  type TEXT NOT NULL CHECK (type IN ('proposal', 'jersey-mockup', 'logo', 'media')),
   name TEXT NOT NULL,
   url TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -82,6 +82,12 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to automatically update updated_at
+-- Drop existing triggers if they exist (idempotent)
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
+DROP TRIGGER IF EXISTS update_leads_updated_at ON leads;
+DROP TRIGGER IF EXISTS update_outreach_drafts_updated_at ON outreach_drafts;
+
+-- Create triggers
 CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON teams
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
