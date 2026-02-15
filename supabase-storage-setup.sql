@@ -20,15 +20,15 @@ WITH CHECK (
   bucket_id = 'assets' AND
   (
     -- Support new team-based structure: teams/{team_id}/jerseys/, teams/{team_id}/proposals/, etc.
-    (storage.foldername(name))[1] = 'teams' AND
-    ((storage.foldername(name))[3] = 'jerseys' OR
-     (storage.foldername(name))[3] = 'proposals' OR
-     (storage.foldername(name))[3] = 'logos')
+    -- Use pattern matching for more reliable path checking
+    (name LIKE 'teams/%/jerseys/%' OR
+     name LIKE 'teams/%/proposals/%' OR
+     name LIKE 'teams/%/logos/%')
   ) OR
   -- Support legacy structure: jerseys/, proposals/, logos/ (for backward compatibility)
-  (storage.foldername(name))[1] = 'jerseys' OR
-  (storage.foldername(name))[1] = 'proposals' OR
-  (storage.foldername(name))[1] = 'logos'
+  (name LIKE 'jerseys/%' OR
+   name LIKE 'proposals/%' OR
+   name LIKE 'logos/%')
 );
 
 -- Allow users to view their own assets
