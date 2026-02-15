@@ -31,14 +31,22 @@ export default function LeadDetailPage({
 }) {
   const { id } = use(params)
   const router = useRouter()
-  const { leads, drafts, updateLeadStatus, updateLeadNotes, addDraft } = useApp()
+  const { leads, drafts, updateLeadStatus, updateLeadNotes, addDraft, assets, team, addAsset } = useApp()
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isGeneratingJersey, setIsGeneratingJersey] = useState(false)
   const [notes, setNotes] = useState("")
   const notesTimeoutRef = useRef<NodeJS.Timeout>(null)
 
   const lead = leads.find((l) => l.id === id)
   const draft = drafts.find((d) => d.leadId === id)
+  
+  // Find jersey for this company (most recent jersey-mockup with company name)
+  const jerseyAsset = lead
+    ? assets
+        .filter((asset) => asset.type === "jersey-mockup" && asset.name.includes(lead.companyName))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+    : undefined
 
   // Sync notes with lead when it changes
   useEffect(() => {
@@ -123,6 +131,45 @@ export default function LeadDetailPage({
       toast.success("Marked as sent")
     } catch (error) {
       toast.error("Failed to update lead status")
+    }
+  }
+
+  async function handleGenerateJersey() {
+    if (!team) {
+      toast.error("Please complete team setup first")
+      return
+    }
+    
+    if (!lead) {
+      toast.error("Lead not found")
+      return
+    }
+
+    setIsGeneratingJersey(true)
+    try {
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "jersey-mockup",
+          sponsorName: lead.companyName,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to generate jersey mockup")
+      }
+
+      const { asset } = await response.json()
+      await addAsset(asset)
+      toast.success("Jersey mockup generated and added to draft!")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate jersey mockup")
+    } finally {
+      setIsGeneratingJersey(false)
     }
   }
 
@@ -300,15 +347,48 @@ export default function LeadDetailPage({
                     Jersey Mockup
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex h-40 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-                    <div className="text-center">
-                      <Shirt className="mx-auto h-12 w-12 text-primary" />
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Jersey mockup with {lead.companyName} logo
+                <CardContent className="flex flex-col gap-3">
+                  {jerseyAsset ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="relative overflow-hidden rounded-lg border">
+                        <img
+                          src={jerseyAsset.url}
+                          alt={`Jersey mockup with ${lead.companyName}`}
+                          className="h-auto w-full object-contain"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {jerseyAsset.name}
                       </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex h-40 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+                      <div className="text-center">
+                        <Shirt className="mx-auto h-12 w-12 text-primary" />
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          No jersey mockup yet
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleGenerateJersey}
+                    disabled={isGeneratingJersey}
+                    variant="outline"
+                    className="w-full gap-2"
+                  >
+                    {isGeneratingJersey ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Shirt className="h-4 w-4" />
+                        {jerseyAsset ? "Regenerate Jersey" : "Create Jersey Mockup"}
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
 
