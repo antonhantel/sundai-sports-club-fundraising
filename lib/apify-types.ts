@@ -62,5 +62,9 @@ export interface ApifyPlaceResult {
   city?: string
   state?: string
   country?: string
+  rating?: number | string
+  reviews?: number
+  totalScore?: number
+  reviewsCount?: number
   [key: string]: unknown
 }

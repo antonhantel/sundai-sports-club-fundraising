@@ -59,11 +59,27 @@ function mapApifyPlaceToLead(item: ApifyPlaceResult, index: number): Omit<Lead, 
   const address = item.address ?? item.full_address ?? ""
   const location = [item.city, item.state, item.country].filter(Boolean).join(", ") || address || "Unknown"
 
+  const website = typeof item.website === "string" ? item.website : (typeof item.url === "string" ? item.url : undefined)
+  const phone = item.phone ?? item.phoneNumber ?? undefined
+
+  let rating: number | undefined
+  if (typeof item.rating === "number") rating = item.rating
+  else if (typeof item.rating === "string") {
+    const parsed = parseFloat(item.rating)
+    if (!isNaN(parsed)) rating = parsed
+  } else if (typeof item.totalScore === "number") rating = item.totalScore
+
+  const reviewCount = typeof item.reviews === "number"
+    ? item.reviews
+    : typeof item.reviewsCount === "number"
+      ? item.reviewsCount
+      : undefined
+
   // Email: use scraped email, or placeholder if none (required by DB)
   let email = item.email ?? ""
-  if (!email && typeof item.website === "string" && item.website) {
+  if (!email && website) {
     try {
-      const host = new URL(item.website).hostname.replace(/^www\./, "")
+      const host = new URL(website).hostname.replace(/^www\./, "")
       email = `contact@${host}`
     } catch {
       email = `lead-${index + 1}@placeholder.local`
@@ -73,7 +89,7 @@ function mapApifyPlaceToLead(item: ApifyPlaceResult, index: number): Omit<Lead, 
     email = `lead-${index + 1}@placeholder.local`
   }
 
-  const contact = item.phone ?? item.phoneNumber ?? "Contact"
+  const contact = phone ?? "Contact"
 
   return {
     companyName: String(companyName).slice(0, 255),
@@ -81,26 +97,22 @@ function mapApifyPlaceToLead(item: ApifyPlaceResult, index: number): Omit<Lead, 
     contact: String(contact).slice(0, 255),
     email: String(email).slice(0, 255),
     location: String(location).slice(0, 255),
-    fitReason: `Discovered via Apify lead search. ${item.website ? `Website: ${item.website}` : ""}`.trim().slice(0, 500),
+    fitReason: `Discovered via Apify lead search. ${website ? `Website: ${website}` : ""}`.trim().slice(0, 500),
     status: "new" as const,
     notes: "",
+    website: website?.slice(0, 500),
+    phone: phone?.slice(0, 100),
+    rating,
+    reviewCount,
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const token = process.env.APIFY_API_TOKEN
-    if (!token) {
-      return NextResponse.json(
-        { error: "Apify API token not configured. Add APIFY_API_TOKEN to .env.local" },
-        { status: 500 }
-      )
-    }
-
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Please sign in to pull leads." }, { status: 401 })
     }
 
     const { data: team, error: teamError } = await supabase
@@ -113,17 +125,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 })
     }
 
-    let runInput: ApifyRunInput = defaultRunInput
+    let body: Record<string, unknown> = {}
     try {
-      const body = await request.json()
-      if (body && typeof body === "object") {
-        runInput = { ...defaultRunInput, ...body }
-      }
+      body = (await request.json()) as Record<string, unknown>
     } catch {
       // Use defaults if body is invalid
     }
 
-    const client = new ApifyClient({ token })
+    // Apify token: user-provided in dialog, or server env (fixes "Unauthorized" when env is wrong)
+    const apifyToken = typeof body.apifyToken === "string" && body.apifyToken.trim()
+      ? body.apifyToken.trim()
+      : process.env.APIFY_API_TOKEN
+
+    if (!apifyToken) {
+      return NextResponse.json(
+        {
+          error: "Apify API token required. Enter your token in the dialog, or add APIFY_API_TOKEN to .env.local",
+        },
+        { status: 401 }
+      )
+    }
+
+    const { apifyToken: _drop, ...rest } = body
+    let runInput: ApifyRunInput = { ...defaultRunInput, ...rest }
+
+    const client = new ApifyClient({ token: apifyToken })
     const run = await client.actor(APIFY_ACTOR_ID).call(runInput)
 
     const leads: Omit<Lead, "id" | "createdAt">[] = []

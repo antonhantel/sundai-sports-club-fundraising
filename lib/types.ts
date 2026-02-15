@@ -37,6 +37,10 @@ export interface Lead {
   status: LeadStatus
   notes: string
   createdAt: string
+  website?: string
+  phone?: string
+  rating?: number
+  reviewCount?: number
 }
 
 export interface OutreachDraft {
@@ -63,4 +67,18 @@ export interface AgentLog {
   action: string
   detail: string
   timestamp: string
+}
+
+export interface Donation {
+  sessionId: string
+  amount: number
+  currency: string
+  teamName: string
+  customerEmail: string | null
+  createdAt: string
+}
+
+export interface CheckoutSessionRequest {
+  amount: number
+  teamName: string
 }

@@ -82,6 +82,10 @@ export interface Database {
           notes: string
           created_at: string
           updated_at: string
+          website?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
         }
         Insert: {
           id?: string
@@ -96,6 +100,10 @@ export interface Database {
           notes?: string
           created_at?: string
           updated_at?: string
+          website?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
         }
         Update: {
           id?: string
@@ -110,6 +118,10 @@ export interface Database {
           notes?: string
           created_at?: string
           updated_at?: string
+          website?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
         }
       }
       outreach_drafts: {

@@ -54,6 +54,10 @@ export function dbLeadToLead(dbLead: Database['public']['Tables']['leads']['Row'
     status: dbLead.status,
     notes: dbLead.notes,
     createdAt: dbLead.created_at,
+    website: dbLead.website ?? undefined,
+    phone: dbLead.phone ?? undefined,
+    rating: dbLead.rating != null ? Number(dbLead.rating) : undefined,
+    reviewCount: dbLead.review_count ?? undefined,
   }
 }
 
@@ -69,6 +73,10 @@ export function leadToDbLead(lead: Omit<Lead, 'id' | 'createdAt'>, teamId: strin
     fit_reason: lead.fitReason,
     status: lead.status,
     notes: lead.notes,
+    website: lead.website ?? null,
+    phone: lead.phone ?? null,
+    rating: lead.rating ?? null,
+    review_count: lead.reviewCount ?? null,
   }
 }
 

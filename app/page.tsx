@@ -15,12 +15,20 @@ export default function Page() {
             <Trophy className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold text-foreground">TeamFund</span>
           </Link>
-          <Link
-            href="/auth/login"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/donate"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Donate
+            </Link>
+            <Link
+              href="/auth/login"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Sign in
+            </Link>
+          </div>
         </nav>
       </header>
       <main className="flex-1">

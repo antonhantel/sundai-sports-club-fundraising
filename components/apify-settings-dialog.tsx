@@ -17,7 +17,7 @@ import { Settings2, Loader2 } from "lucide-react"
 import type { ApifyRunInput } from "@/lib/apify-types"
 
 interface ApifySettingsDialogProps {
-  onFetch: (settings: ApifyRunInput) => Promise<void>
+  onFetch: (settings: ApifyRunInput, apifyToken?: string) => Promise<void>
   isFetching: boolean
   trigger?: React.ReactNode
 }
@@ -40,6 +40,7 @@ export function ApifySettingsDialog({
   const [searchStrings, setSearchStrings] = useState(defaultSettings.searchStringsArray.join(", "))
   const [locationQuery, setLocationQuery] = useState(defaultSettings.locationQuery)
   const [maxPlaces, setMaxPlaces] = useState(defaultSettings.maxCrawledPlacesPerSearch ?? 50)
+  const [apifyToken, setApifyToken] = useState("")
 
   const handleFetch = async () => {
     const searchStringsArray = searchStrings
@@ -55,7 +56,7 @@ export function ApifySettingsDialog({
       maxCrawledPlacesPerSearch: Math.min(Math.max(1, maxPlaces), 200),
     }
 
-    await onFetch(settings)
+    await onFetch(settings, apifyToken.trim() || undefined)
     setOpen(false)
   }
 
@@ -77,6 +78,28 @@ export function ApifySettingsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="apifyToken">Apify API token</Label>
+            <Input
+              id="apifyToken"
+              type="password"
+              placeholder="apify_api_xxx (required if not in env)"
+              value={apifyToken}
+              onChange={(e) => setApifyToken(e.target.value)}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Required for lead discovery. Get yours at{" "}
+              <a
+                href="https://console.apify.com/account/integrations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Apify Console
+              </a>
+            </p>
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="searchStrings">Search terms (comma-separated)</Label>
             <Input

@@ -21,6 +21,10 @@ import {
   Loader2,
   RefreshCw,
   Shirt,
+  Globe,
+  Phone,
+  Star,
+  MessageSquare,
 } from "lucide-react"
 import type { OutreachDraft } from "@/lib/types"
 
@@ -161,12 +165,51 @@ export default function LeadDetailPage({
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-card-foreground">{lead.email}</span>
+                <a href={`mailto:${lead.email}`} className="text-card-foreground underline-offset-2 hover:underline">
+                  {lead.email}
+                </a>
               </div>
+              {lead.phone && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <a href={`tel:${lead.phone}`} className="text-card-foreground underline-offset-2 hover:underline">
+                    {lead.phone}
+                  </a>
+                </div>
+              )}
+              {lead.website && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <a
+                    href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-card-foreground underline-offset-2 hover:underline"
+                  >
+                    {lead.website}
+                  </a>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span className="text-card-foreground">{lead.location}</span>
               </div>
+              {(lead.rating != null || lead.reviewCount != null) && (
+                <div className="flex items-center gap-4 pt-1 text-sm">
+                  {lead.rating != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      {lead.rating.toFixed(1)}
+                    </span>
+                  )}
+                  {lead.reviewCount != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <MessageSquare className="h-4 w-4" />
+                      {lead.reviewCount} reviews
+                    </span>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

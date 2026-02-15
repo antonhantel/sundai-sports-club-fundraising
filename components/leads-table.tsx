@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { LeadStatusBadge } from "@/components/lead-status-badge"
 import { ApifySettingsDialog } from "@/components/apify-settings-dialog"
 import { toast } from "sonner"
-import { Search, CheckCircle, Sparkles, Loader2, Plus } from "lucide-react"
+import { Search, CheckCircle, Sparkles, Loader2, Plus, Star, MessageSquare } from "lucide-react"
 import type { Lead } from "@/lib/types"
 import type { ApifyRunInput } from "@/lib/apify-types"
 
@@ -79,13 +79,14 @@ export function LeadsTable() {
     }
   }
 
-  async function handleApifyFetch(settings: ApifyRunInput) {
+  async function handleApifyFetch(settings: ApifyRunInput, apifyToken?: string) {
     try {
       setIsSearching(true)
       const res = await fetch("/api/apify/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({ ...settings, apifyToken }),
+        credentials: "include",
       })
       const data = await res.json()
       if (!res.ok) {
@@ -171,6 +172,8 @@ export function LeadsTable() {
               <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="hidden lg:table-cell">Contact</TableHead>
               <TableHead className="hidden lg:table-cell">Location</TableHead>
+              <TableHead className="hidden xl:table-cell">Rating</TableHead>
+              <TableHead className="hidden xl:table-cell">Reviews</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -204,6 +207,26 @@ export function LeadsTable() {
                 <TableCell className="hidden text-muted-foreground lg:table-cell">
                   {lead.location}
                 </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  {lead.rating != null ? (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      {lead.rating.toFixed(1)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  {lead.reviewCount != null ? (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      {lead.reviewCount}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <LeadStatusBadge status={lead.status} />
                 </TableCell>
@@ -211,7 +234,7 @@ export function LeadsTable() {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No leads found.
                 </TableCell>
               </TableRow>
