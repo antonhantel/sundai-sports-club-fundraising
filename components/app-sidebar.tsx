@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   Users,
   FolderOpen,
+  Mail,
   Settings,
   Trophy,
   LogOut,
@@ -36,6 +37,7 @@ import {
 const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", href: "/dashboard/leads", icon: Users },
+  { title: "Email", href: "/dashboard/email", icon: Mail },
   { title: "Assets", href: "/dashboard/assets", icon: FolderOpen },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
