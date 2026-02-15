@@ -3,14 +3,24 @@
 import { useRouter } from "next/navigation"
 import { useApp } from "@/lib/store"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trophy } from "lucide-react"
 import Link from "next/link"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 export default function LoginPage() {
-  const { login, user, isOnboarded } = useApp()
+  const { user, isOnboarded, setUser } = useApp()
   const router = useRouter()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
     if (user) {
@@ -18,10 +28,70 @@ export default function LoginPage() {
     }
   }, [user, isOnboarded, router])
 
-  function handleGoogleLogin() {
-    // TODO: Replace with Supabase Google OAuth
-    login()
-    router.push("/onboarding")
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      if (isSignUp) {
+        // Sign up
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: name || email.split("@")[0],
+            },
+            emailRedirectTo: undefined, // Don't require email confirmation
+          },
+        })
+
+        if (error) throw error
+
+        if (data.user) {
+          // Set user in store
+          setUser({
+            id: data.user.id,
+            email: data.user.email!,
+            name: data.user.user_metadata?.name || email.split("@")[0],
+            avatarUrl: "",
+          })
+          toast.success("Account created successfully!")
+          router.push("/onboarding")
+        }
+      } else {
+        // Sign in
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (error) throw error
+
+        if (data.user) {
+          // Fetch user metadata
+          const { data: profileData } = await supabase
+            .from("teams")
+            .select("id")
+            .eq("user_id", data.user.id)
+            .single()
+
+          setUser({
+            id: data.user.id,
+            email: data.user.email!,
+            name: data.user.user_metadata?.name || email.split("@")[0],
+            avatarUrl: "",
+          })
+
+          toast.success("Signed in successfully!")
+          router.push(profileData ? "/dashboard" : "/onboarding")
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -32,37 +102,68 @@ export default function LoginPage() {
       </Link>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">
+            {isSignUp ? "Create an account" : "Welcome back"}
+          </CardTitle>
           <CardDescription>
-            Sign in to manage your team's fundraising
+            {isSignUp
+              ? "Sign up to start managing your team's fundraising"
+              : "Sign in to manage your team's fundraising"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
-            onClick={handleGoogleLogin}
-            variant="outline"
-            className="h-12 w-full gap-3 text-base"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                fill="#4285F4"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required={isSignUp}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder={isSignUp ? "At least 6 characters" : "Your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
               />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-            Continue with Google
-          </Button>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Loading..." : isSignUp ? "Sign up" : "Sign in"}
+            </Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-primary hover:underline"
+            >
+              {isSignUp
+                ? "Already have an account? Sign in"
+                : "Don't have an account? Sign up"}
+            </button>
+          </div>
           <p className="mt-4 text-center text-xs text-muted-foreground">
             By signing in, you agree to our Terms of Service and Privacy Policy.
           </p>
