@@ -31,7 +31,7 @@ const defaultRunInput: ApifyRunInput = {
     twitters: false,
   },
   maximumLeadsEnrichmentRecords: 0,
-  leadsEnrichmentDepartments: null,
+  leadsEnrichmentDepartments: [],
   maxReviews: 0,
   reviewsStartDate: null,
   reviewsSort: "newest",
@@ -46,8 +46,8 @@ const defaultRunInput: ApifyRunInput = {
   county: null,
   postalCode: null,
   customGeolocation: null,
-  startUrls: null,
-  placeIds: null,
+  startUrls: [],
+  placeIds: [],
   allPlacesNoSearchAction: "",
 }
 
@@ -149,9 +149,12 @@ export async function POST(request: Request) {
     const { apifyToken: _drop, ...rest } = body
     let runInput: ApifyRunInput = { ...defaultRunInput, ...rest }
 
-    // Ensure categoryFilterWords is always an array (Apify rejects non-array values)
-    if (!Array.isArray(runInput.categoryFilterWords)) {
-      runInput.categoryFilterWords = []
+    // Ensure all array fields are arrays, not null (Apify rejects non-array values)
+    const arrayFields = ["categoryFilterWords", "leadsEnrichmentDepartments", "startUrls", "placeIds"] as const
+    for (const field of arrayFields) {
+      if (!Array.isArray(runInput[field])) {
+        ;(runInput as Record<string, unknown>)[field] = []
+      }
     }
 
     const client = new ApifyClient({ token: apifyToken })
