@@ -35,7 +35,7 @@ export default function LeadDetailPage({
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [notes, setNotes] = useState("")
-  const notesTimeoutRef = useRef<NodeJS.Timeout>()
+  const notesTimeoutRef = useRef<NodeJS.Timeout>(null)
 
   const lead = leads.find((l) => l.id === id)
   const draft = drafts.find((d) => d.leadId === id)
@@ -91,9 +91,30 @@ export default function LeadDetailPage({
   }
 
   async function handleCreateGmailDraft() {
-    // TODO: Replace with Gmail API call
-    await new Promise((r) => setTimeout(r, 500))
-    toast.success("Gmail draft created! Check your drafts folder.")
+    if (!draft) return
+    try {
+      const res = await fetch("/api/gmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: lead!.email,
+          subject: draft.emailSubject,
+          htmlBody: draft.emailBody.replace(/\n/g, "<br>"),
+        }),
+      })
+      const data = await res.json()
+      if (res.status === 401) {
+        toast.error("Please connect your Gmail account first (go to Email page)")
+        return
+      }
+      if (data.success) {
+        toast.success("Gmail draft created! Check your drafts folder.")
+      } else {
+        toast.error(data.error || "Failed to create Gmail draft")
+      }
+    } catch {
+      toast.error("Failed to create Gmail draft")
+    }
   }
 
   async function handleMarkSent() {

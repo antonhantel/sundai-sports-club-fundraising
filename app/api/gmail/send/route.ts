@@ -45,50 +45,60 @@ async function getValidAccessToken(): Promise<{
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const { to, subject, htmlBody } = body
-
   const tokens = await getValidAccessToken()
-
   if (!tokens) {
-    return NextResponse.json(
-      { error: "not_authenticated", message: "Please connect your Gmail account first" },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: "not_authenticated" }, { status: 401 })
   }
 
   try {
+    const { to, subject, body, draftId } = await request.json()
+
     const gmail = getGmailClient(tokens.accessToken, tokens.refreshToken)
 
+    // If sending a draft, use the draft send endpoint
+    if (draftId) {
+      const result = await gmail.users.drafts.send({
+        userId: "me",
+        requestBody: {
+          id: draftId,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        messageId: result.data.id,
+        message: "Draft sent successfully",
+      })
+    }
+
+    // Otherwise compose and send a new email
     const rawMessage = [
       `To: ${to}`,
       `Subject: ${subject}`,
       "Content-Type: text/html; charset=utf-8",
       "",
-      htmlBody,
+      body,
     ].join("\r\n")
 
     const encodedMessage = encodeBase64Url(rawMessage)
 
-    const draft = await gmail.users.drafts.create({
+    const result = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
-        message: {
-          raw: encodedMessage,
-        },
+        raw: encodedMessage,
       },
     })
 
     return NextResponse.json({
       success: true,
-      message: `Gmail draft created for ${to}`,
-      draftId: draft.data.id,
+      messageId: result.data.id,
+      message: `Email sent to ${to}`,
     })
   } catch (error: unknown) {
-    console.error("Gmail draft creation error:", error)
+    console.error("Gmail send error:", error)
     const status = (error as { code?: number })?.code === 401 ? 401 : 500
     return NextResponse.json(
-      { error: "Failed to create Gmail draft" },
+      { error: "Failed to send email" },
       { status }
     )
   }
