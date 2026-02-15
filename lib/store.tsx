@@ -31,6 +31,7 @@ interface AppContextValue extends AppState {
   updateLeadStatus: (leadId: string, status: LeadStatus) => Promise<void>
   updateLeadNotes: (leadId: string, notes: string) => Promise<void>
   bulkUpdateLeadStatus: (leadIds: string[], status: LeadStatus) => Promise<void>
+  deleteLead: (leadId: string) => Promise<void>
   addLeads: (newLeads: Lead[]) => Promise<void>
   addDraft: (draft: OutreachDraft) => Promise<void>
   updateDraftStatus: (draftId: string, status: "draft" | "reviewed" | "sent") => Promise<void>
@@ -260,6 +261,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase])
 
+  const deleteLead = useCallback(async (leadId: string) => {
+    try {
+      const response = await fetch(`/api/leads?id=${leadId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to delete lead")
+      }
+
+      setState((prev) => ({
+        ...prev,
+        leads: prev.leads.filter((l) => l.id !== leadId),
+      }))
+    } catch (error) {
+      console.error("Error deleting lead:", error)
+      throw error
+    }
+  }, [])
+
   const addLeads = useCallback(async (newLeads: Lead[]) => {
     if (!state.team) return
 
@@ -422,6 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateLeadStatus,
         updateLeadNotes,
         bulkUpdateLeadStatus,
+        deleteLead,
         addLeads,
         addDraft,
         updateDraftStatus,

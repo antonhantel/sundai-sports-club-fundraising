@@ -12,7 +12,7 @@ const defaultRunInput: ApifyRunInput = {
   locationQuery: "New York, USA",
   maxCrawledPlacesPerSearch: 50,
   language: "en",
-  categoryFilterWords: null,
+  categoryFilterWords: [],
   searchMatching: "all",
   placeMinimumStars: "",
   website: "allPlaces",
@@ -148,6 +148,11 @@ export async function POST(request: Request) {
 
     const { apifyToken: _drop, ...rest } = body
     let runInput: ApifyRunInput = { ...defaultRunInput, ...rest }
+
+    // Ensure categoryFilterWords is always an array (Apify rejects non-array values)
+    if (!Array.isArray(runInput.categoryFilterWords)) {
+      runInput.categoryFilterWords = []
+    }
 
     const client = new ApifyClient({ token: apifyToken })
     const run = await client.actor(APIFY_ACTOR_ID).call(runInput)

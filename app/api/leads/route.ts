@@ -43,6 +43,48 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ error: "Lead ID is required" }, { status: 400 })
+    }
+
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("user_id", user.id)
+      .single()
+
+    if (teamError || !team) {
+      return NextResponse.json({ error: "Team not found" }, { status: 404 })
+    }
+
+    const { error: deleteError } = await supabase
+      .from("leads")
+      .delete()
+      .eq("id", id)
+      .eq("team_id", team.id)
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()

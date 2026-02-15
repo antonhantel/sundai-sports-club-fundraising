@@ -8,7 +8,7 @@ export interface ApifyRunInput {
   locationQuery: string
   maxCrawledPlacesPerSearch?: number
   language?: string
-  categoryFilterWords?: string | null
+  categoryFilterWords?: string[] | null
   searchMatching?: "all" | "any"
   placeMinimumStars?: string
   website?: "allPlaces" | "withWebsite" | "withoutWebsite"

@@ -17,12 +17,12 @@ import { Input } from "@/components/ui/input"
 import { LeadStatusBadge } from "@/components/lead-status-badge"
 import { ApifySettingsDialog } from "@/components/apify-settings-dialog"
 import { toast } from "sonner"
-import { Search, CheckCircle, Sparkles, Loader2, Plus, Star, MessageSquare } from "lucide-react"
+import { Search, CheckCircle, Sparkles, Loader2, Plus, Star, MessageSquare, Trash2 } from "lucide-react"
 import type { Lead } from "@/lib/types"
 import type { ApifyRunInput } from "@/lib/apify-types"
 
 export function LeadsTable() {
-  const { leads, bulkUpdateLeadStatus, addLeads } = useApp()
+  const { leads, bulkUpdateLeadStatus, addLeads, deleteLead } = useApp()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -79,13 +79,13 @@ export function LeadsTable() {
     }
   }
 
-  async function handleApifyFetch(settings: ApifyRunInput, apifyToken?: string) {
+  async function handleApifyFetch(settings: ApifyRunInput) {
     try {
       setIsSearching(true)
       const res = await fetch("/api/apify/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...settings, apifyToken }),
+        body: JSON.stringify(settings),
         credentials: "include",
       })
       const data = await res.json()
@@ -108,6 +108,20 @@ export function LeadsTable() {
       toast.error(error instanceof Error ? error.message : "Failed to add new leads")
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  async function handleDelete(leadId: string) {
+    try {
+      await deleteLead(leadId)
+      setSelected((prev) => {
+        const next = new Set(prev)
+        next.delete(leadId)
+        return next
+      })
+      toast.success("Lead deleted")
+    } catch {
+      toast.error("Failed to delete lead")
     }
   }
 
@@ -175,6 +189,7 @@ export function LeadsTable() {
               <TableHead className="hidden xl:table-cell">Rating</TableHead>
               <TableHead className="hidden xl:table-cell">Reviews</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -230,11 +245,22 @@ export function LeadsTable() {
                 <TableCell>
                   <LeadStatusBadge status={lead.status} />
                 </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDelete(lead.id)}
+                    aria-label={`Delete ${lead.companyName}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   No leads found.
                 </TableCell>
               </TableRow>
