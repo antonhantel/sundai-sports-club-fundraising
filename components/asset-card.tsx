@@ -57,8 +57,14 @@ export function AssetCard({ asset }: AssetCardProps) {
     try {
       const date = new Date(dateString)
       const now = new Date()
-      const diffTime = Math.abs(now.getTime() - date.getTime())
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // Compare calendar dates (year, month, day) to avoid timezone issues
+      const dateDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      // Calculate difference in calendar days
+      const diffTime = nowDate.getTime() - dateDate.getTime()
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
       
       if (diffDays === 0) {
         return "Today"

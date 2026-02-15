@@ -328,6 +328,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addAsset = useCallback(async (asset: Asset) => {
     if (!state.team) return
 
+    // Check if asset already exists in local state by ID
+    const existingIndex = state.assets.findIndex((a) => a.id === asset.id)
+    if (existingIndex !== -1) {
+      // Asset already exists, just update it in local state
+      setState((prev) => ({
+        ...prev,
+        assets: prev.assets.map((a, idx) => (idx === existingIndex ? asset : a)),
+      }))
+      return
+    }
+
+    // Check if asset has a UUID format (from Supabase) - means it's already in the database
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id)
+    
+    if (isUUID) {
+      // Asset already exists in database (created by API), just add to local state
+      // Double-check it's not already there (race condition protection)
+      setState((prev) => {
+        if (prev.assets.some((a) => a.id === asset.id)) {
+          return prev // Already exists, don't add again
+        }
+        return {
+          ...prev,
+          assets: [...prev.assets, asset],
+        }
+      })
+      return
+    }
+
+    // Asset doesn't exist, insert into database
     try {
       const dbAsset = assetToDbAsset(asset, state.team.id)
       const { data, error } = await supabase
@@ -338,16 +368,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
       if (data) {
-        setState((prev) => ({
-          ...prev,
-          assets: [...prev.assets, dbAssetToAsset(data)],
-        }))
+        const newAsset = dbAssetToAsset(data)
+        setState((prev) => {
+          // Double-check it's not already there (race condition protection)
+          if (prev.assets.some((a) => a.id === newAsset.id)) {
+            return prev // Already exists, don't add again
+          }
+          return {
+            ...prev,
+            assets: [...prev.assets, newAsset],
+          }
+        })
       }
     } catch (error) {
       console.error("Error adding asset:", error)
       throw error
     }
-  }, [state.team, supabase])
+  }, [state.team, state.assets, supabase])
 
   const deleteAsset = useCallback(async (assetId: string) => {
     try {
