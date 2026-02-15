@@ -35,6 +35,7 @@ interface AppContextValue extends AppState {
   addDraft: (draft: OutreachDraft) => Promise<void>
   updateDraftStatus: (draftId: string, status: "draft" | "reviewed" | "sent") => Promise<void>
   addAsset: (asset: Asset) => Promise<void>
+  deleteAsset: (assetId: string) => Promise<void>
   refreshData: () => Promise<void>
 }
 
@@ -348,6 +349,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.team, supabase])
 
+  const deleteAsset = useCallback(async (assetId: string) => {
+    try {
+      const response = await fetch(`/api/assets?id=${assetId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to delete asset")
+      }
+
+      setState((prev) => ({
+        ...prev,
+        assets: prev.assets.filter((a) => a.id !== assetId),
+      }))
+    } catch (error) {
+      console.error("Error deleting asset:", error)
+      throw error
+    }
+  }, [])
+
   if (!hydrated) {
     return null
   }
@@ -367,6 +389,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addDraft,
         updateDraftStatus,
         addAsset,
+        deleteAsset,
         refreshData,
       }}
     >
