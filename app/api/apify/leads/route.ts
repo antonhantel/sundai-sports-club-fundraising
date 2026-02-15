@@ -153,10 +153,10 @@ export async function POST(request: Request) {
     const client = new ApifyClient({ token: apifyToken })
     const run = await client.actor(APIFY_ACTOR_ID).call(runInput)
 
-    const leads: Omit<Lead, "id" | "createdAt">[] = []
-    const dataset = client.dataset(run.defaultDatasetId)
+    const { items } = await client.dataset(run.defaultDatasetId).listItems()
 
-    for await (const item of dataset.iterateItems()) {
+    const leads: Omit<Lead, "id" | "createdAt">[] = []
+    for (const item of items) {
       const place = item as ApifyPlaceResult
       const lead = mapApifyPlaceToLead(place, leads.length)
       if (lead && lead.companyName && lead.companyName !== "Unknown Business") {
