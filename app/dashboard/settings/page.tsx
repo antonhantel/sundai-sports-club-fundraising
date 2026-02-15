@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/lib/store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,15 +9,82 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { LogOut, CreditCard, Key, BarChart3 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LogOut, CreditCard, Key, BarChart3, Edit2, Save, X, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+
+const sports = ["Soccer", "Basketball", "Baseball", "Football", "Hockey", "Volleyball", "Lacrosse", "Other"]
+const leagues = ["Recreational", "Club", "Travel", "High School", "College"]
 
 export default function SettingsPage() {
-  const { user, team, leads, drafts, assets, logout } = useApp()
+  const { user, team, leads, drafts, assets, logout, setTeam } = useApp()
   const router = useRouter()
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    name: team?.name || "",
+    sport: team?.sport || "",
+    location: team?.location || "",
+    league: team?.league || "",
+    primaryColor: team?.primaryColor || "#0d9488",
+    secondaryColor: team?.secondaryColor || "#f59e0b",
+  })
 
   function handleLogout() {
     logout()
     router.push("/")
+  }
+
+  function handleEdit() {
+    if (team) {
+      setFormData({
+        name: team.name || "",
+        sport: team.sport || "",
+        location: team.location || "",
+        league: team.league || "",
+        primaryColor: team.primaryColor || "#0d9488",
+        secondaryColor: team.secondaryColor || "#f59e0b",
+      })
+    }
+    setIsEditing(true)
+  }
+
+  function handleCancel() {
+    setIsEditing(false)
+    if (team) {
+      setFormData({
+        name: team.name || "",
+        sport: team.sport || "",
+        location: team.location || "",
+        league: team.league || "",
+        primaryColor: team.primaryColor || "#0d9488",
+        secondaryColor: team.secondaryColor || "#f59e0b",
+      })
+    }
+  }
+
+  async function handleSave() {
+    if (!team) return
+
+    setIsSaving(true)
+    try {
+      const updatedTeam = {
+        ...team,
+        name: formData.name,
+        sport: formData.sport,
+        location: formData.location,
+        league: formData.league,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+      }
+      await setTeam(updatedTeam)
+      setIsEditing(false)
+      toast.success("Team profile updated successfully!")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update team profile")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -31,40 +99,166 @@ export default function SettingsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Team Profile</CardTitle>
-            <CardDescription>Your team details as entered during onboarding.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Team Profile</CardTitle>
+                <CardDescription>Your team details as entered during onboarding.</CardDescription>
+              </div>
+              {!isEditing && (
+                <Button variant="outline" size="sm" onClick={handleEdit} className="gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Team Name</Label>
-              <p className="text-sm font-medium text-card-foreground">{team?.name || "Not set"}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Sport</Label>
-              <p className="text-sm font-medium text-card-foreground">{team?.sport || "Not set"}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Location</Label>
-              <p className="text-sm font-medium text-card-foreground">{team?.location || "Not set"}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">League</Label>
-              <p className="text-sm font-medium text-card-foreground">{team?.league || "Not set"}</p>
-            </div>
-            {team?.primaryColor && (
-              <div className="flex items-center gap-3">
-                <Label className="text-xs text-muted-foreground">Colors</Label>
-                <div className="flex gap-2">
-                  <div
-                    className="h-6 w-6 rounded-full border border-border"
-                    style={{ backgroundColor: team.primaryColor }}
-                  />
-                  <div
-                    className="h-6 w-6 rounded-full border border-border"
-                    style={{ backgroundColor: team.secondaryColor }}
+            {isEditing ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">Team Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Riverside Thunder"
                   />
                 </div>
-              </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="sport">Sport</Label>
+                  <Select value={formData.sport} onValueChange={(v) => setFormData({ ...formData, sport: v })}>
+                    <SelectTrigger id="sport">
+                      <SelectValue placeholder="Select a sport" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sports.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="location">Location (Zip Code)</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g. 92501"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="league">League Level</Label>
+                  <Select value={formData.league} onValueChange={(v) => setFormData({ ...formData, league: v })}>
+                    <SelectTrigger id="league">
+                      <SelectValue placeholder="Select league level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leagues.map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {l}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Team Colors</Label>
+                  <div className="flex gap-3">
+                    <div className="flex flex-col gap-2 flex-1">
+                      <Label htmlFor="primaryColor" className="text-xs text-muted-foreground">
+                        Primary Color
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="primaryColor"
+                          type="color"
+                          value={formData.primaryColor}
+                          onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                          className="h-10 w-20 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={formData.primaryColor}
+                          onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                          placeholder="#0d9488"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <Label htmlFor="secondaryColor" className="text-xs text-muted-foreground">
+                        Secondary Color
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="secondaryColor"
+                          type="color"
+                          value={formData.secondaryColor}
+                          onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
+                          className="h-10 w-20 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={formData.secondaryColor}
+                          onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
+                          placeholder="#f59e0b"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleSave} disabled={isSaving} className="flex-1 gap-2">
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" onClick={handleCancel} disabled={isSaving} className="gap-2">
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Team Name</Label>
+                  <p className="text-sm font-medium text-card-foreground">{team?.name || "Not set"}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Sport</Label>
+                  <p className="text-sm font-medium text-card-foreground">{team?.sport || "Not set"}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Location</Label>
+                  <p className="text-sm font-medium text-card-foreground">{team?.location || "Not set"}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">League</Label>
+                  <p className="text-sm font-medium text-card-foreground">{team?.league || "Not set"}</p>
+                </div>
+                {team?.primaryColor && (
+                  <div className="flex items-center gap-3">
+                    <Label className="text-xs text-muted-foreground">Colors</Label>
+                    <div className="flex gap-2">
+                      <div
+                        className="h-6 w-6 rounded-full border border-border"
+                        style={{ backgroundColor: team.primaryColor }}
+                      />
+                      <div
+                        className="h-6 w-6 rounded-full border border-border"
+                        style={{ backgroundColor: team.secondaryColor }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

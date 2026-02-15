@@ -22,14 +22,26 @@ This project uses Supabase for authentication and database storage. Follow these
 
 ## 3. Set Up Environment Variables
 
-1. Create a `.env.local` file in the root of this project:
+1. Create a `.env.local` file in the root of this project with all required variables:
 
 ```bash
+# Required: Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_project_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+
+# Optional: Nanobanana API for jersey mockup generation
+NANOBANANA_API_KEY=your_nanobanana_api_key_here
+NANOBANANA_API_URL=https://api.nanobanana.com/v1/generate
+
+# Optional: Future integrations (currently not used)
+# OPENAI_API_KEY=your_openai_api_key
+# GOOGLE_PLACES_API_KEY=your_google_places_api_key
 ```
 
-2. Replace the placeholder values with your actual Supabase credentials
+2. Replace the placeholder values with your actual credentials
+3. See [README.md](./README.md) for a complete list of all environment variables
+
+**Note:** The `NEXT_PUBLIC_` prefix means these variables are exposed to the browser. Never put sensitive keys with this prefix.
 
 ## 4. Run the Database Migrations
 
@@ -49,6 +61,18 @@ You need to run two migration files in order:
 4. This will enable Row Level Security and create all security policies
 
 **Note:** The RLS policies migration is idempotent - you can run it multiple times safely if you need to update policies.
+
+### Step 3: Storage Bucket Setup (for jersey mockups and assets)
+1. Still in **SQL Editor**, click "New Query" again
+2. Copy and paste the contents of `supabase-storage-setup.sql` from this project
+3. Click "Run" to execute the migration
+4. This will create the `assets` storage bucket for storing generated images
+
+Alternatively, you can create the bucket manually:
+1. Go to **Storage** in your Supabase dashboard
+2. Click "New bucket"
+3. Name it `assets` and make it public
+4. Set up the storage policies as shown in `supabase-storage-setup.sql`
 
 ## 5. Configure Email Authentication
 
