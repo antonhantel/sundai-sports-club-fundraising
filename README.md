@@ -56,6 +56,10 @@ NANOBANANA_API_KEY=your_google_gemini_api_key
 # OpenAI API (for future use - outreach email generation)
 # OPENAI_API_KEY=your_openai_api_key
 
+# Apify API - for lead discovery via Google Maps scraper
+# Get from https://console.apify.com/account/integrations
+APIFY_API_TOKEN=your_apify_api_token
+
 # Google Places API (for future use - lead discovery)
 # GOOGLE_PLACES_API_KEY=your_google_places_api_key
 ```
@@ -66,6 +70,7 @@ NANOBANANA_API_KEY=your_google_gemini_api_key
 |----------|----------|-------------|-----------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Your Supabase project URL | Supabase Dashboard → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Your Supabase anonymous/public key | Supabase Dashboard → Settings → API |
+| `APIFY_API_TOKEN` | ⚠️ Optional | Apify API token for lead discovery (Google Maps scraper) | [Apify Console](https://console.apify.com/account/integrations) |
 | `NANOBANANA_API_KEY` | ⚠️ Optional | Google Gemini API key for jersey mockup generation (Nano Banana Flash 3) | [Google AI Studio](https://makersuite.google.com/app/apikey) |
 | `NANOBANANA_API_URL` | ⚠️ Optional | Custom API endpoint (if using a different provider) | Leave empty to use Gemini Nano Banana |
 | `OPENAI_API_KEY` | ⚠️ Future | For AI-powered outreach email generation | [OpenAI Platform](https://platform.openai.com) |
@@ -123,6 +128,7 @@ If you want to use jersey mockup generation:
 - ✅ Email-based authentication with Supabase
 - ✅ Team onboarding and profile management
 - ✅ Lead management and tracking
+- ✅ **Apify lead discovery** – pull new leads from Google Maps via Apify (configurable search terms, location, max places)
 - ✅ Outreach email and proposal generation
 - ✅ Jersey mockup generation (with Nanobanana)
 - ✅ Marketing asset management
@@ -172,6 +178,7 @@ See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed troubleshooting guides
 ### Common Issues
 
 - **"Unauthorized" errors**: Check your Supabase environment variables
+- **Apify lead fetch fails**: Add `APIFY_API_TOKEN` to `.env.local` from [Apify Console](https://console.apify.com/account/integrations)
 - **Jersey generation fails**: Verify `NANOBANANA_API_KEY` is set correctly
 - **Storage upload errors**: Make sure you've run `supabase-storage-setup.sql`
 
