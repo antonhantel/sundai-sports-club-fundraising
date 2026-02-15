@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/lib/store"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
-import { ArrowLeft, ArrowRight, Check } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Upload } from "lucide-react"
 import type { Team } from "@/lib/types"
 
 const TOTAL_STEPS = 4
@@ -43,6 +43,12 @@ export function OnboardingForm() {
     primaryColor: "#0d9488",
     secondaryColor: "#f59e0b",
   })
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  const MAX_LOGO_BYTES = 2 * 1024 * 1024 // 2MB
+  const ACCEPTED_LOGO_TYPES = "image/png,image/svg+xml"
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -56,10 +62,31 @@ export function OnboardingForm() {
     if (step > 1) setStep(step - 1)
   }
 
+  function handleLogoClick() {
+    logoInputRef.current?.click()
+  }
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.match(/^image\/(png|svg\+xml)$/)) {
+      toast.error("Please select a PNG or SVG image")
+      return
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      toast.error("Logo must be 2MB or smaller")
+      return
+    }
+    if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl)
+    setLogoFile(file)
+    setLogoPreviewUrl(URL.createObjectURL(file))
+    e.target.value = ""
+  }
+
   async function handleSubmit() {
     try {
       const team: Team = {
-        id: "", // Will be set by Supabase
+        id: "",
         name: form.name || "My Team",
         sport: form.sport || "Soccer",
         location: form.location || "00000",
@@ -74,7 +101,20 @@ export function OnboardingForm() {
         secondaryColor: form.secondaryColor,
         logoUrl: "",
       }
-      await setTeam(team)
+      const savedTeam = await setTeam(team)
+      if (logoFile && savedTeam) {
+        const formData = new FormData()
+        formData.append("file", logoFile)
+        formData.append("type", "logo")
+        formData.append("name", "Team logo")
+        const res = await fetch("/api/assets", { method: "POST", body: formData })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error || "Failed to upload logo")
+        }
+        const { asset } = await res.json()
+        await setTeam({ ...savedTeam, logoUrl: asset.url })
+      }
       setOnboarded(true)
       toast.success("Team setup complete! Let's find some sponsors.")
       router.push("/dashboard")
@@ -287,9 +327,35 @@ export function OnboardingForm() {
             </div>
             <div className="flex flex-col gap-2">
               <Label>Logo Upload</Label>
-              <div className="flex h-32 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">
-                Click to upload your team logo (optional)
-              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept={ACCEPTED_LOGO_TYPES}
+                onChange={handleLogoChange}
+                className="sr-only"
+                aria-label="Upload team logo"
+              />
+              <button
+                type="button"
+                onClick={handleLogoClick}
+                className="flex h-32 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {logoPreviewUrl ? (
+                  <>
+                    <img
+                      src={logoPreviewUrl}
+                      alt="Logo preview"
+                      className="max-h-20 max-w-[120px] object-contain"
+                    />
+                    <span className="text-xs">Click to replace</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8" />
+                    <span>Click to upload your team logo (optional)</span>
+                  </>
+                )}
+              </button>
               <p className="text-xs text-muted-foreground">PNG or SVG, max 2MB</p>
             </div>
           </CardContent>
