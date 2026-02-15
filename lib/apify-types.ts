@@ -3,12 +3,12 @@
  * Actor ID: nwua9Gu5YrADL7ZDj (compass/google-maps-scraper)
  */
 
+/** Input matching the official Apify Google Maps Scraper documentation */
 export interface ApifyRunInput {
   searchStringsArray: string[]
   locationQuery: string
   maxCrawledPlacesPerSearch?: number
   language?: string
-  categoryFilterWords?: string[] | null
   searchMatching?: "all" | "any"
   placeMinimumStars?: string
   website?: "allPlaces" | "withWebsite" | "withoutWebsite"
@@ -27,23 +27,13 @@ export interface ApifyRunInput {
     twitters?: boolean
   }
   maximumLeadsEnrichmentRecords?: number
-  leadsEnrichmentDepartments?: string[] | null
   maxReviews?: number
-  reviewsStartDate?: string | null
   reviewsSort?: string
   reviewsFilterString?: string
   reviewsOrigin?: string
   scrapeReviewsPersonalData?: boolean
   maxImages?: number
   scrapeImageAuthors?: boolean
-  countryCode?: string | null
-  city?: string | null
-  state?: string | null
-  county?: string | null
-  postalCode?: string | null
-  customGeolocation?: string | null
-  startUrls?: string[] | null
-  placeIds?: string[] | null
   allPlacesNoSearchAction?: string
 }
 

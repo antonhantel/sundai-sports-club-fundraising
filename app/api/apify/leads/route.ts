@@ -6,13 +6,13 @@ import type { Lead } from "@/lib/types"
 
 const APIFY_ACTOR_ID = "nwua9Gu5YrADL7ZDj"
 
-// Default run input for the Apify Google Maps Scraper
+// Default run input matching the official Apify Google Maps Scraper docs exactly.
+// Only include documented fields to avoid validation errors.
 const defaultRunInput: ApifyRunInput = {
   searchStringsArray: ["restaurant"],
   locationQuery: "New York, USA",
   maxCrawledPlacesPerSearch: 50,
   language: "en",
-  categoryFilterWords: [],
   searchMatching: "all",
   placeMinimumStars: "",
   website: "allPlaces",
@@ -31,23 +31,13 @@ const defaultRunInput: ApifyRunInput = {
     twitters: false,
   },
   maximumLeadsEnrichmentRecords: 0,
-  leadsEnrichmentDepartments: [],
   maxReviews: 0,
-  reviewsStartDate: null,
   reviewsSort: "newest",
   reviewsFilterString: "",
   reviewsOrigin: "all",
   scrapeReviewsPersonalData: true,
   maxImages: 0,
   scrapeImageAuthors: false,
-  countryCode: null,
-  city: null,
-  state: null,
-  county: null,
-  postalCode: null,
-  customGeolocation: null,
-  startUrls: [],
-  placeIds: [],
   allPlacesNoSearchAction: "",
 }
 
@@ -146,15 +136,18 @@ export async function POST(request: Request) {
       )
     }
 
-    const { apifyToken: _drop, ...rest } = body
-    let runInput: ApifyRunInput = { ...defaultRunInput, ...rest }
-
-    // Ensure all array fields are arrays, not null (Apify rejects non-array values)
-    const arrayFields = ["categoryFilterWords", "leadsEnrichmentDepartments", "startUrls", "placeIds"] as const
-    for (const field of arrayFields) {
-      if (!Array.isArray(runInput[field])) {
-        ;(runInput as Record<string, unknown>)[field] = []
-      }
+    // Only pick user-overridable fields to avoid sending unknown fields to Apify
+    const runInput: ApifyRunInput = {
+      ...defaultRunInput,
+      ...(Array.isArray(body.searchStringsArray) && body.searchStringsArray.length > 0
+        ? { searchStringsArray: body.searchStringsArray }
+        : {}),
+      ...(typeof body.locationQuery === "string" && body.locationQuery.trim()
+        ? { locationQuery: body.locationQuery.trim() }
+        : {}),
+      ...(typeof body.maxCrawledPlacesPerSearch === "number"
+        ? { maxCrawledPlacesPerSearch: body.maxCrawledPlacesPerSearch }
+        : {}),
     }
 
     const client = new ApifyClient({ token: apifyToken })
