@@ -21,7 +21,6 @@ import type { Asset } from "@/lib/types"
 
 export default function AssetsPage() {
   const { assets, addAsset, team } = useApp()
-  const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const [isGeneratingJersey, setIsGeneratingJersey] = useState(false)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -30,23 +29,6 @@ export default function AssetsPage() {
     title: "",
     type: "logo" as "proposal" | "jersey-mockup" | "logo" | "media",
   })
-
-  async function handleGenerateProposal() {
-    setIsGeneratingProposal(true)
-    // TODO: Replace with OpenAI API call
-    await new Promise((r) => setTimeout(r, 1500))
-    const newAsset: Asset = {
-      id: `asset-${Date.now()}`,
-      teamId: "team-1",
-      type: "proposal",
-      name: `New Sponsorship Proposal - ${new Date().toLocaleDateString()}`,
-      url: `/assets/proposal-${Date.now()}.pdf`,
-      createdAt: new Date().toISOString().split("T")[0],
-    }
-    addAsset(newAsset)
-    setIsGeneratingProposal(false)
-    toast.success("Proposal generated!")
-  }
 
   async function handleGenerateJersey() {
     if (!team) {
@@ -160,19 +142,6 @@ export default function AssetsPage() {
         >
           <Upload className="h-4 w-4" />
           Upload Asset
-        </Button>
-        <Button
-          onClick={handleGenerateProposal}
-          disabled={isGeneratingProposal}
-          variant="outline"
-          className="gap-2"
-        >
-          {isGeneratingProposal ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <FileText className="h-4 w-4" />
-          )}
-          Generate Proposal
         </Button>
         <Button
           onClick={handleGenerateJersey}
