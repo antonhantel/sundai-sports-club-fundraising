@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useApp } from "@/lib/store"
@@ -34,9 +34,18 @@ export default function LeadDetailPage({
   const { leads, drafts, updateLeadStatus, updateLeadNotes, addDraft } = useApp()
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [notes, setNotes] = useState("")
+  const notesTimeoutRef = useRef<NodeJS.Timeout>()
 
   const lead = leads.find((l) => l.id === id)
   const draft = drafts.find((d) => d.leadId === id)
+
+  // Sync notes with lead when it changes
+  useEffect(() => {
+    if (lead) {
+      setNotes(lead.notes)
+    }
+  }, [lead?.id, lead?.notes])
 
   if (!lead) {
     return (
@@ -53,22 +62,25 @@ export default function LeadDetailPage({
   }
 
   async function handleGenerate() {
-    setIsGenerating(true)
-    // TODO: Replace with OpenAI API call
-    await new Promise((r) => setTimeout(r, 1500))
-    const newDraft: OutreachDraft = {
-      id: `draft-${Date.now()}`,
-      leadId: lead!.id,
-      emailSubject: `Sponsorship Opportunity - Your Team x ${lead!.companyName}`,
-      emailBody: `Dear ${lead!.contact},\n\nI'm reaching out about an exciting sponsorship opportunity with our local youth sports team. As a valued ${lead!.category.toLowerCase()} business in ${lead!.location}, we believe a partnership would be mutually beneficial.\n\n${lead!.fitReason}\n\nOur sponsorship packages include jersey logo placement, social media recognition, and event presence. I'd love to discuss how we can work together.\n\nBest regards,\nCoach Martinez`,
-      proposalText: `SPONSORSHIP PROPOSAL\n\nYour Team x ${lead!.companyName}\n\nAbout Us: Local youth sports team with 120+ active families.\n\nWhy Partner: ${lead!.fitReason}\n\nSponsorship Tiers:\n- Gold ($2,500): Primary jersey logo, banner, social media\n- Silver ($1,000): Jersey sleeve, banner, newsletter\n- Bronze ($500): Banner display, newsletter mention\n\nContact: coach.martinez@gmail.com`,
-      status: "draft",
-      createdAt: new Date().toISOString().split("T")[0],
+    try {
+      setIsGenerating(true)
+      // TODO: Replace with OpenAI API call
+      await new Promise((r) => setTimeout(r, 1500))
+      const newDraft: Omit<OutreachDraft, "id" | "createdAt"> = {
+        leadId: lead!.id,
+        emailSubject: `Sponsorship Opportunity - Your Team x ${lead!.companyName}`,
+        emailBody: `Dear ${lead!.contact},\n\nI'm reaching out about an exciting sponsorship opportunity with our local youth sports team. As a valued ${lead!.category.toLowerCase()} business in ${lead!.location}, we believe a partnership would be mutually beneficial.\n\n${lead!.fitReason}\n\nOur sponsorship packages include jersey logo placement, social media recognition, and event presence. I'd love to discuss how we can work together.\n\nBest regards,\nCoach Martinez`,
+        proposalText: `SPONSORSHIP PROPOSAL\n\nYour Team x ${lead!.companyName}\n\nAbout Us: Local youth sports team with 120+ active families.\n\nWhy Partner: ${lead!.fitReason}\n\nSponsorship Tiers:\n- Gold ($2,500): Primary jersey logo, banner, social media\n- Silver ($1,000): Jersey sleeve, banner, newsletter\n- Bronze ($500): Banner display, newsletter mention\n\nContact: coach.martinez@gmail.com`,
+        status: "draft",
+      }
+      await addDraft(newDraft as OutreachDraft)
+      await updateLeadStatus(lead!.id, "drafted")
+      toast.success("Outreach generated successfully")
+    } catch (error) {
+      toast.error("Failed to generate outreach")
+    } finally {
+      setIsGenerating(false)
     }
-    addDraft(newDraft)
-    updateLeadStatus(lead!.id, "drafted")
-    setIsGenerating(false)
-    toast.success("Outreach generated successfully")
   }
 
   async function handleRegenerate() {
@@ -84,9 +96,13 @@ export default function LeadDetailPage({
     toast.success("Gmail draft created! Check your drafts folder.")
   }
 
-  function handleMarkSent() {
-    updateLeadStatus(lead!.id, "sent")
-    toast.success("Marked as sent")
+  async function handleMarkSent() {
+    try {
+      await updateLeadStatus(lead!.id, "sent")
+      toast.success("Marked as sent")
+    } catch (error) {
+      toast.error("Failed to update lead status")
+    }
   }
 
   return (
@@ -152,8 +168,22 @@ export default function LeadDetailPage({
             <CardContent>
               <Textarea
                 placeholder="Add notes about this lead..."
-                value={lead.notes}
-                onChange={(e) => updateLeadNotes(lead.id, e.target.value)}
+                value={notes}
+                onChange={(e) => {
+                  const newNotes = e.target.value
+                  setNotes(newNotes)
+                  // Debounce the update
+                  if (notesTimeoutRef.current) {
+                    clearTimeout(notesTimeoutRef.current)
+                  }
+                  notesTimeoutRef.current = setTimeout(async () => {
+                    try {
+                      await updateLeadNotes(lead.id, newNotes)
+                    } catch (error) {
+                      toast.error("Failed to save notes")
+                    }
+                  }, 500)
+                }}
                 rows={4}
               />
             </CardContent>

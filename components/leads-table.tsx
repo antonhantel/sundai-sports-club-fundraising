@@ -84,35 +84,49 @@ export function LeadsTable() {
   }
 
   async function handleApprove() {
-    const ids = Array.from(selected)
-    bulkUpdateLeadStatus(ids, "approved")
-    setSelected(new Set())
-    toast.success(`${ids.length} lead${ids.length > 1 ? "s" : ""} approved`)
+    try {
+      const ids = Array.from(selected)
+      await bulkUpdateLeadStatus(ids, "approved")
+      setSelected(new Set())
+      toast.success(`${ids.length} lead${ids.length > 1 ? "s" : ""} approved`)
+    } catch (error) {
+      toast.error("Failed to approve leads")
+    }
   }
 
   async function handleGenerate() {
-    const ids = Array.from(selected)
-    setIsGenerating(true)
-    // TODO: Replace with OpenAI API call
-    await new Promise((r) => setTimeout(r, 1500))
-    bulkUpdateLeadStatus(ids, "drafted")
-    setSelected(new Set())
-    setIsGenerating(false)
-    toast.success(`Generated outreach for ${ids.length} lead${ids.length > 1 ? "s" : ""}`)
+    try {
+      const ids = Array.from(selected)
+      setIsGenerating(true)
+      // TODO: Replace with OpenAI API call
+      await new Promise((r) => setTimeout(r, 1500))
+      await bulkUpdateLeadStatus(ids, "drafted")
+      setSelected(new Set())
+      toast.success(`Generated outreach for ${ids.length} lead${ids.length > 1 ? "s" : ""}`)
+    } catch (error) {
+      toast.error("Failed to generate outreach")
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   async function handleFindNew() {
-    setIsSearching(true)
-    // TODO: Replace with Google Places API call
-    await new Promise((r) => setTimeout(r, 1200))
-    const newLeads: Lead[] = newLeadPool.map((l, i) => ({
-      ...l,
-      id: `lead-new-${Date.now()}-${i}`,
-      createdAt: new Date().toISOString().split("T")[0],
-    }))
-    addLeads(newLeads)
-    setIsSearching(false)
-    toast.success(`Found ${newLeads.length} new potential sponsors`)
+    try {
+      setIsSearching(true)
+      // TODO: Replace with Google Places API call
+      await new Promise((r) => setTimeout(r, 1200))
+      const newLeads: Lead[] = newLeadPool.map((l, i) => ({
+        ...l,
+        id: `lead-new-${Date.now()}-${i}`,
+        createdAt: new Date().toISOString().split("T")[0],
+      }))
+      await addLeads(newLeads)
+      toast.success(`Found ${newLeads.length} new potential sponsors`)
+    } catch (error) {
+      toast.error("Failed to add new leads")
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const hasSelected = selected.size > 0
