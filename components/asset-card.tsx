@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Download, FileText, Shirt, ImageIcon, Trash2, X } from "lucide-react"
+import { Download, FileText, Shirt, ImageIcon, Trash2, X, Video } from "lucide-react"
 import type { Asset } from "@/lib/types"
 import Image from "next/image"
 import { useApp } from "@/lib/store"
@@ -27,6 +27,11 @@ const typeConfig: Record<string, { icon: typeof FileText; label: string; classNa
     label: "Logo",
     className: "bg-emerald-100 text-emerald-700",
   },
+  media: {
+    icon: Video,
+    label: "Media",
+    className: "bg-purple-100 text-purple-700",
+  },
 }
 
 interface AssetCardProps {
@@ -43,7 +48,7 @@ export function AssetCard({ asset }: AssetCardProps) {
   const { deleteAsset } = useApp()
   
   // Check if this asset type should show an image preview
-  const shouldShowImage = asset.type === "jersey-mockup" || asset.type === "logo"
+  const shouldShowImage = asset.type === "jersey-mockup" || asset.type === "logo" || asset.type === "media"
   const hasValidUrl = asset.url && asset.url.startsWith("http")
   
   // Reset fullscreen error when opening modal

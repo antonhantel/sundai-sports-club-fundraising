@@ -23,12 +23,14 @@ WITH CHECK (
     -- Use pattern matching for more reliable path checking
     (name LIKE 'teams/%/jerseys/%' OR
      name LIKE 'teams/%/proposals/%' OR
-     name LIKE 'teams/%/logos/%')
+     name LIKE 'teams/%/logos/%' OR
+     name LIKE 'teams/%/media/%')
   ) OR
-  -- Support legacy structure: jerseys/, proposals/, logos/ (for backward compatibility)
+  -- Support legacy structure: jerseys/, proposals/, logos/, media/ (for backward compatibility)
   (name LIKE 'jerseys/%' OR
    name LIKE 'proposals/%' OR
-   name LIKE 'logos/%')
+   name LIKE 'logos/%' OR
+   name LIKE 'media/%')
 );
 
 -- Allow users to view their own assets

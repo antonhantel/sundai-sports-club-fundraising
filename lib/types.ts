@@ -1,6 +1,6 @@
 export type LeadStatus = "new" | "approved" | "drafted" | "sent"
 
-export type AssetType = "proposal" | "jersey-mockup" | "logo"
+export type AssetType = "proposal" | "jersey-mockup" | "logo" | "media"
 
 export interface User {
   id: string
