@@ -9,7 +9,7 @@ import { FileText, Shirt, Loader2 } from "lucide-react"
 import type { Asset } from "@/lib/types"
 
 export default function AssetsPage() {
-  const { assets, addAsset } = useApp()
+  const { assets, addAsset, team } = useApp()
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const [isGeneratingJersey, setIsGeneratingJersey] = useState(false)
 
@@ -31,20 +31,36 @@ export default function AssetsPage() {
   }
 
   async function handleGenerateJersey() {
-    setIsGeneratingJersey(true)
-    // TODO: Replace with image generation API call
-    await new Promise((r) => setTimeout(r, 1500))
-    const newAsset: Asset = {
-      id: `asset-${Date.now()}`,
-      teamId: "team-1",
-      type: "jersey-mockup",
-      name: `Jersey Mockup - ${new Date().toLocaleDateString()}`,
-      url: `/assets/jersey-${Date.now()}.png`,
-      createdAt: new Date().toISOString().split("T")[0],
+    if (!team) {
+      toast.error("Please complete team setup first")
+      return
     }
-    addAsset(newAsset)
-    setIsGeneratingJersey(false)
-    toast.success("Jersey mockup generated!")
+    
+    setIsGeneratingJersey(true)
+    try {
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "jersey-mockup",
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to generate jersey mockup")
+      }
+
+      const { asset } = await response.json()
+      await addAsset(asset)
+      toast.success("Jersey mockup generated!")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate jersey mockup")
+    } finally {
+      setIsGeneratingJersey(false)
+    }
   }
 
   return (
@@ -74,6 +90,7 @@ export default function AssetsPage() {
           disabled={isGeneratingJersey}
           variant="outline"
           className="gap-2"
+          type="button"
         >
           {isGeneratingJersey ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -84,7 +101,7 @@ export default function AssetsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {assets.map((asset) => (
           <AssetCard key={asset.id} asset={asset} />
         ))}

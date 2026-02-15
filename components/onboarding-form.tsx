@@ -56,27 +56,31 @@ export function OnboardingForm() {
     if (step > 1) setStep(step - 1)
   }
 
-  function handleSubmit() {
-    const team: Team = {
-      id: "team-" + Date.now(),
-      name: form.name || "My Team",
-      sport: form.sport || "Soccer",
-      location: form.location || "00000",
-      league: form.league || "Club",
-      seasonStart: form.seasonStart || "2026-03-01",
-      seasonEnd: form.seasonEnd || "2026-08-15",
-      audience: form.audience || "",
-      sponsorshipNeeds: form.sponsorshipNeeds || "",
-      targetAmount: parseInt(form.targetAmount) || 10000,
-      existingSponsors: form.existingSponsors || "",
-      primaryColor: form.primaryColor,
-      secondaryColor: form.secondaryColor,
-      logoUrl: "",
+  async function handleSubmit() {
+    try {
+      const team: Team = {
+        id: "", // Will be set by Supabase
+        name: form.name || "My Team",
+        sport: form.sport || "Soccer",
+        location: form.location || "00000",
+        league: form.league || "Club",
+        seasonStart: form.seasonStart || "2026-03-01",
+        seasonEnd: form.seasonEnd || "2026-08-15",
+        audience: form.audience || "",
+        sponsorshipNeeds: form.sponsorshipNeeds || "",
+        targetAmount: parseInt(form.targetAmount) || 10000,
+        existingSponsors: form.existingSponsors || "",
+        primaryColor: form.primaryColor,
+        secondaryColor: form.secondaryColor,
+        logoUrl: "",
+      }
+      await setTeam(team)
+      setOnboarded(true)
+      toast.success("Team setup complete! Let's find some sponsors.")
+      router.push("/dashboard")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save team. Please try again.")
     }
-    setTeam(team)
-    setOnboarded(true)
-    toast.success("Team setup complete! Let's find some sponsors.")
-    router.push("/dashboard")
   }
 
   return (
