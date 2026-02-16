@@ -2,7 +2,7 @@
 
 A Next.js application for managing sports team fundraising, sponsor outreach, and marketing assets.
 
-## Quick Start
+## Quick Start 
 
 ### Prerequisites
 
