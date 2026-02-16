@@ -81,6 +81,7 @@ export function dbDraftToDraft(dbDraft: Database['public']['Tables']['outreach_d
     emailBody: dbDraft.email_body,
     proposalText: dbDraft.proposal_text,
     status: dbDraft.status,
+    attachments: dbDraft.attachments || undefined,
     createdAt: dbDraft.created_at,
   }
 }
@@ -94,6 +95,7 @@ export function draftToDbDraft(draft: Omit<OutreachDraft, 'id' | 'createdAt'>, t
     email_body: draft.emailBody,
     proposal_text: draft.proposalText,
     status: draft.status,
+    attachments: draft.attachments || null,
   }
 }
 

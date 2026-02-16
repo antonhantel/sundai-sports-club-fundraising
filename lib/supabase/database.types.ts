@@ -121,6 +121,7 @@ export interface Database {
           email_body: string
           proposal_text: string
           status: 'draft' | 'reviewed' | 'sent'
+          attachments?: string[] | null
           created_at: string
           updated_at: string
         }
@@ -132,6 +133,7 @@ export interface Database {
           email_body: string
           proposal_text: string
           status?: 'draft' | 'reviewed' | 'sent'
+          attachments?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -143,6 +145,7 @@ export interface Database {
           email_body?: string
           proposal_text?: string
           status?: 'draft' | 'reviewed' | 'sent'
+          attachments?: string[] | null
           created_at?: string
           updated_at?: string
         }

@@ -74,16 +74,21 @@ export default function LeadDetailPage({
       setIsGenerating(true)
       // TODO: Replace with OpenAI API call
       await new Promise((r) => setTimeout(r, 1500))
+      
+      // Include jersey asset as attachment if it exists
+      const attachments = jerseyAsset ? [jerseyAsset.id] : undefined
+      
       const newDraft: Omit<OutreachDraft, "id" | "createdAt"> = {
         leadId: lead!.id,
         emailSubject: `Sponsorship Opportunity - Your Team x ${lead!.companyName}`,
         emailBody: `Dear ${lead!.contact},\n\nI'm reaching out about an exciting sponsorship opportunity with our local youth sports team. As a valued ${lead!.category.toLowerCase()} business in ${lead!.location}, we believe a partnership would be mutually beneficial.\n\n${lead!.fitReason}\n\nOur sponsorship packages include jersey logo placement, social media recognition, and event presence. I'd love to discuss how we can work together.\n\nBest regards,\nCoach Martinez`,
         proposalText: `SPONSORSHIP PROPOSAL\n\nYour Team x ${lead!.companyName}\n\nAbout Us: Local youth sports team with 120+ active families.\n\nWhy Partner: ${lead!.fitReason}\n\nSponsorship Tiers:\n- Gold ($2,500): Primary jersey logo, banner, social media\n- Silver ($1,000): Jersey sleeve, banner, newsletter\n- Bronze ($500): Banner display, newsletter mention\n\nContact: coach.martinez@gmail.com`,
         status: "draft",
+        attachments,
       }
       await addDraft(newDraft as OutreachDraft)
       await updateLeadStatus(lead!.id, "drafted")
-      toast.success("Outreach generated successfully")
+      toast.success("Outreach generated successfully" + (jerseyAsset ? " with jersey attachment" : ""))
     } catch (error) {
       toast.error("Failed to generate outreach")
     } finally {
@@ -101,6 +106,16 @@ export default function LeadDetailPage({
   async function handleCreateGmailDraft() {
     if (!draft) return
     try {
+      // Get asset URLs from attachment IDs
+      const attachmentUrls = draft.attachments
+        ? draft.attachments
+            .map((assetId) => {
+              const asset = assets.find((a) => a.id === assetId)
+              return asset?.url
+            })
+            .filter((url): url is string => !!url)
+        : []
+
       const res = await fetch("/api/gmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,6 +123,7 @@ export default function LeadDetailPage({
           to: lead!.email,
           subject: draft.emailSubject,
           htmlBody: draft.emailBody.replace(/\n/g, "<br>"),
+          attachments: attachmentUrls.length > 0 ? attachmentUrls : undefined,
         }),
       })
       const data = await res.json()
@@ -116,7 +132,9 @@ export default function LeadDetailPage({
         return
       }
       if (data.success) {
-        toast.success("Gmail draft created! Check your drafts folder.")
+        toast.success(
+          `Gmail draft created! Check your drafts folder.${attachmentUrls.length > 0 ? ` (${attachmentUrls.length} attachment${attachmentUrls.length > 1 ? "s" : ""})` : ""}`
+        )
       } else {
         toast.error(data.error || "Failed to create Gmail draft")
       }
