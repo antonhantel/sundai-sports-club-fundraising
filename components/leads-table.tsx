@@ -15,50 +15,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LeadStatusBadge } from "@/components/lead-status-badge"
+import { FindLeadsDialog } from "@/components/find-leads-dialog"
 import { toast } from "sonner"
 import { Search, CheckCircle, Sparkles, Loader2, Plus, Trash2 } from "lucide-react"
-import type { Lead } from "@/lib/types"
-
-const newLeadPool: Omit<Lead, "id" | "createdAt">[] = [
-  {
-    companyName: "Pacific Coast Plumbing",
-    category: "Home Services",
-    contact: "Mike O'Brien",
-    email: "mike@pacificcoastplumbing.com",
-    location: "Riverside, CA",
-    fitReason: "Well-known local service company. Home services businesses value community visibility.",
-    status: "new",
-    notes: "",
-  },
-  {
-    companyName: "Sunrise Bakery & Cafe",
-    category: "Restaurant",
-    contact: "Diana Flores",
-    email: "diana@sunrisebakerycafe.com",
-    location: "Riverside, CA",
-    fitReason: "Family cafe near the school district. Great for post-game treats and team celebrations.",
-    status: "new",
-    notes: "",
-  },
-  {
-    companyName: "Riverside Martial Arts Academy",
-    category: "Sports & Fitness",
-    contact: "Sensei Rick Tanaka",
-    email: "rick@riversidemartialarts.com",
-    location: "Riverside, CA",
-    fitReason: "Fellow youth sports organization. Cross-promotion opportunities for both programs.",
-    status: "new",
-    notes: "",
-  },
-]
 
 export function LeadsTable() {
-  const { leads, bulkUpdateLeadStatus, deleteLeads, addLeads } = useApp()
+  const { leads, bulkUpdateLeadStatus, deleteLeads } = useApp()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isSearching, setIsSearching] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [findLeadsOpen, setFindLeadsOpen] = useState(false)
 
   const filtered = leads.filter(
     (l) =>
@@ -125,25 +92,6 @@ export function LeadsTable() {
     }
   }
 
-  async function handleFindNew() {
-    try {
-      setIsSearching(true)
-      // TODO: Replace with Google Places API call
-      await new Promise((r) => setTimeout(r, 1200))
-      const newLeads: Lead[] = newLeadPool.map((l, i) => ({
-        ...l,
-        id: `lead-new-${Date.now()}-${i}`,
-        createdAt: new Date().toISOString().split("T")[0],
-      }))
-      await addLeads(newLeads)
-      toast.success(`Found ${newLeads.length} new potential sponsors`)
-    } catch (error) {
-      toast.error("Failed to add new leads")
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
   const hasSelected = selected.size > 0
 
   return (
@@ -158,8 +106,8 @@ export function LeadsTable() {
             className="pl-9"
           />
         </div>
-        <Button onClick={handleFindNew} disabled={isSearching} variant="outline" className="gap-2">
-          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+        <Button onClick={() => setFindLeadsOpen(true)} variant="outline" className="gap-2">
+          <Plus className="h-4 w-4" />
           Find New Leads
         </Button>
       </div>
@@ -261,6 +209,8 @@ export function LeadsTable() {
           </TableBody>
         </Table>
       </div>
+
+      <FindLeadsDialog open={findLeadsOpen} onOpenChange={setFindLeadsOpen} />
     </div>
   )
 }
