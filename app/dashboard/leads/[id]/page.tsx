@@ -31,7 +31,7 @@ export default function LeadDetailPage({
 }) {
   const { id } = use(params)
   const router = useRouter()
-  const { leads, drafts, updateLeadStatus, updateLeadNotes, addDraft, assets, team, addAsset } = useApp()
+  const { leads, drafts, updateLeadStatus, updateLeadNotes, addDraft, updateDraft, assets, team, addAsset } = useApp()
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [isGeneratingJersey, setIsGeneratingJersey] = useState(false)
@@ -77,7 +77,7 @@ export default function LeadDetailPage({
       const newDraft: Omit<OutreachDraft, "id" | "createdAt"> = {
         leadId: lead!.id,
         emailSubject: `Sponsorship Opportunity - Your Team x ${lead!.companyName}`,
-        emailBody: `Dear ${lead!.contact},\n\nI'm reaching out about an exciting sponsorship opportunity with our local youth sports team. As a valued ${lead!.category.toLowerCase()} business in ${lead!.location}, we believe a partnership would be mutually beneficial.\n\n${lead!.fitReason}\n\nOur sponsorship packages include jersey logo placement, social media recognition, and event presence. I'd love to discuss how we can work together.\n\nBest regards,\nCoach Martinez`,
+        emailBody: `Dear team,\n\nI'm reaching out about an exciting sponsorship opportunity with our local youth sports team. As a valued ${lead!.category.toLowerCase()} business in ${lead!.location}, we believe a partnership would be mutually beneficial.\n\n${lead!.fitReason}\n\nOur sponsorship packages include jersey logo placement, social media recognition, and event presence. I'd love to discuss how we can work together.\n\nBest regards,\nCoach Martinez`,
         proposalText: `SPONSORSHIP PROPOSAL\n\nYour Team x ${lead!.companyName}\n\nAbout Us: Local youth sports team with 120+ active families.\n\nWhy Partner: ${lead!.fitReason}\n\nSponsorship Tiers:\n- Gold ($2,500): Primary jersey logo, banner, social media\n- Silver ($1,000): Jersey sleeve, banner, newsletter\n- Bronze ($500): Banner display, newsletter mention\n\nContact: coach.martinez@gmail.com`,
         status: "draft",
       }
@@ -98,16 +98,33 @@ export default function LeadDetailPage({
     toast.success("Outreach regenerated")
   }
 
+  function emailBodyToHtml(body: string): string {
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    const urlPattern = /^https?:\/\/\S+$/i
+    return body
+      .split("\n")
+      .map((line) => {
+        const trimmed = line.trim()
+        if (urlPattern.test(trimmed)) {
+          return `<img src="${trimmed}" alt="Jersey mockup" style="max-width:100%;height:auto;display:block;margin:12px 0;" />`
+        }
+        return escapeHtml(line)
+      })
+      .join("<br>\n")
+  }
+
   async function handleCreateGmailDraft() {
     if (!draft) return
     try {
+      const htmlBody = emailBodyToHtml(draft.emailBody)
       const res = await fetch("/api/gmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: lead!.email,
           subject: draft.emailSubject,
-          htmlBody: draft.emailBody.replace(/\n/g, "<br>"),
+          htmlBody,
         }),
       })
       const data = await res.json()
@@ -165,6 +182,13 @@ export default function LeadDetailPage({
 
       const { asset } = await response.json()
       await addAsset(asset)
+      // Add image directly to email draft so it appears in the Gmail draft
+      const currentDraft = drafts.find((d) => d.leadId === lead.id)
+      if (currentDraft) {
+        const separator = currentDraft.emailBody.trimEnd() ? "\n\n" : ""
+        const appendedBody = `${currentDraft.emailBody.trimEnd()}${separator}Jersey mockup:\n${asset.url}`
+        await updateDraft(currentDraft.id, { emailBody: appendedBody })
+      }
       toast.success("Jersey mockup generated and added to draft!")
     } catch (error: any) {
       toast.error(error.message || "Failed to generate jersey mockup")

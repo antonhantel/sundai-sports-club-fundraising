@@ -212,7 +212,7 @@ export const mockDrafts: OutreachDraft[] = [
     id: "draft-1",
     leadId: "lead-1",
     emailSubject: "Sponsorship Opportunity - Riverside Thunder Youth Soccer",
-    emailBody: `Dear Dr. Chen,
+    emailBody: `Dear team,
 
 I'm Coach Martinez with the Riverside Thunder, a youth soccer club serving over 120 families in the Riverside community. We're reaching out to select local businesses about sponsorship opportunities for our upcoming 2026 season.
 

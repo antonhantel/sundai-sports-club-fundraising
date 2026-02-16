@@ -34,6 +34,7 @@ interface AppContextValue extends AppState {
   deleteLeads: (leadIds: string[]) => Promise<void>
   addLeads: (newLeads: Lead[]) => Promise<void>
   addDraft: (draft: OutreachDraft) => Promise<void>
+  updateDraft: (draftId: string, updates: Partial<Pick<OutreachDraft, "emailBody" | "emailSubject" | "proposalText">>) => Promise<void>
   updateDraftStatus: (draftId: string, status: "draft" | "reviewed" | "sent") => Promise<void>
   addAsset: (asset: Asset) => Promise<void>
   deleteAsset: (assetId: string) => Promise<void>
@@ -329,6 +330,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.team, supabase])
 
+  const updateDraft = useCallback(
+    async (
+      draftId: string,
+      updates: Partial<Pick<OutreachDraft, "emailBody" | "emailSubject" | "proposalText">>
+    ) => {
+      const dbUpdates: Record<string, string> = {}
+      if (updates.emailBody !== undefined) dbUpdates.email_body = updates.emailBody
+      if (updates.emailSubject !== undefined) dbUpdates.email_subject = updates.emailSubject
+      if (updates.proposalText !== undefined) dbUpdates.proposal_text = updates.proposalText
+      if (Object.keys(dbUpdates).length === 0) return
+
+      try {
+        const { error } = await supabase
+          .from("outreach_drafts")
+          .update(dbUpdates)
+          .eq("id", draftId)
+
+        if (error) throw error
+        setState((prev) => ({
+          ...prev,
+          drafts: prev.drafts.map((d) =>
+            d.id === draftId ? { ...d, ...updates } : d
+          ),
+        }))
+      } catch (error) {
+        console.error("Error updating draft:", error)
+        throw error
+      }
+    },
+    [supabase]
+  )
+
   const updateDraftStatus = useCallback(async (draftId: string, status: "draft" | "reviewed" | "sent") => {
     try {
       const { error } = await supabase
@@ -447,6 +480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteLeads,
         addLeads,
         addDraft,
+        updateDraft,
         updateDraftStatus,
         addAsset,
         deleteAsset,
