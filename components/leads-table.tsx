@@ -19,41 +19,8 @@ import { toast } from "sonner"
 import { Search, CheckCircle, Sparkles, Loader2, Plus, Trash2 } from "lucide-react"
 import type { Lead } from "@/lib/types"
 
-const newLeadPool: Omit<Lead, "id" | "createdAt">[] = [
-  {
-    companyName: "Pacific Coast Plumbing",
-    category: "Home Services",
-    contact: "Mike O'Brien",
-    email: "mike@pacificcoastplumbing.com",
-    location: "Riverside, CA",
-    fitReason: "Well-known local service company. Home services businesses value community visibility.",
-    status: "new",
-    notes: "",
-  },
-  {
-    companyName: "Sunrise Bakery & Cafe",
-    category: "Restaurant",
-    contact: "Diana Flores",
-    email: "diana@sunrisebakerycafe.com",
-    location: "Riverside, CA",
-    fitReason: "Family cafe near the school district. Great for post-game treats and team celebrations.",
-    status: "new",
-    notes: "",
-  },
-  {
-    companyName: "Riverside Martial Arts Academy",
-    category: "Sports & Fitness",
-    contact: "Sensei Rick Tanaka",
-    email: "rick@riversidemartialarts.com",
-    location: "Riverside, CA",
-    fitReason: "Fellow youth sports organization. Cross-promotion opportunities for both programs.",
-    status: "new",
-    notes: "",
-  },
-]
-
 export function LeadsTable() {
-  const { leads, bulkUpdateLeadStatus, deleteLeads, addLeads } = useApp()
+  const { leads, bulkUpdateLeadStatus, deleteLeads, addLeads, team } = useApp()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -128,17 +95,33 @@ export function LeadsTable() {
   async function handleFindNew() {
     try {
       setIsSearching(true)
-      // TODO: Replace with Google Places API call
-      await new Promise((r) => setTimeout(r, 1200))
-      const newLeads: Lead[] = newLeadPool.map((l, i) => ({
+      const res = await fetch("/api/perplexity/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: team?.location ?? "local area",
+          sport: team?.sport ?? "youth sports",
+        }),
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to find leads")
+      }
+      const rawLeads = data.leads ?? []
+      const newLeads: Lead[] = rawLeads.map((l: Omit<Lead, "id" | "createdAt">, i: number) => ({
         ...l,
         id: `lead-new-${Date.now()}-${i}`,
-        createdAt: new Date().toISOString().split("T")[0],
+        createdAt: new Date().toISOString(),
       }))
-      await addLeads(newLeads)
-      toast.success(`Found ${newLeads.length} new potential sponsors`)
+      if (newLeads.length > 0) {
+        await addLeads(newLeads)
+        toast.success(`Found ${newLeads.length} potential sponsors via Perplexity`)
+      } else {
+        toast.info("No new leads found. Try a different location or sport.")
+      }
     } catch (error) {
-      toast.error("Failed to add new leads")
+      toast.error(error instanceof Error ? error.message : "Failed to find new leads")
     } finally {
       setIsSearching(false)
     }

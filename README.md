@@ -56,8 +56,9 @@ NANOBANANA_API_KEY=your_google_gemini_api_key
 # OpenAI API (for future use - outreach email generation)
 # OPENAI_API_KEY=your_openai_api_key
 
-# Google Places API (for future use - lead discovery)
-# GOOGLE_PLACES_API_KEY=your_google_places_api_key
+# Perplexity API - lead discovery (natural language search for top 5 local sponsors)
+# Get from https://www.perplexity.ai/settings/api
+PERPLEXITY_API_KEY=your_perplexity_api_key
 ```
 
 ### Environment Variables Reference
@@ -66,10 +67,10 @@ NANOBANANA_API_KEY=your_google_gemini_api_key
 |----------|----------|-------------|-----------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Your Supabase project URL | Supabase Dashboard → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Your Supabase anonymous/public key | Supabase Dashboard → Settings → API |
+| `PERPLEXITY_API_KEY` | ⚠️ Optional | Perplexity API key for AI-powered lead discovery (top 5 sponsors) | [Perplexity API](https://www.perplexity.ai/settings/api) |
 | `NANOBANANA_API_KEY` | ⚠️ Optional | Google Gemini API key for jersey mockup generation (Nano Banana Flash 3) | [Google AI Studio](https://makersuite.google.com/app/apikey) |
 | `NANOBANANA_API_URL` | ⚠️ Optional | Custom API endpoint (if using a different provider) | Leave empty to use Gemini Nano Banana |
 | `OPENAI_API_KEY` | ⚠️ Future | For AI-powered outreach email generation | [OpenAI Platform](https://platform.openai.com) |
-| `GOOGLE_PLACES_API_KEY` | ⚠️ Future | For business lead discovery | [Google Cloud Console](https://console.cloud.google.com) |
 
 ## Setup Instructions
 
@@ -123,6 +124,7 @@ If you want to use jersey mockup generation:
 - ✅ Email-based authentication with Supabase
 - ✅ Team onboarding and profile management
 - ✅ Lead management and tracking
+- ✅ **Perplexity lead discovery** – natural language search for top 5 potential local sponsors (uses team location & sport)
 - ✅ Outreach email and proposal generation
 - ✅ Jersey mockup generation (with Nanobanana)
 - ✅ Marketing asset management
