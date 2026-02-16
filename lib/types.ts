@@ -46,6 +46,7 @@ export interface OutreachDraft {
   emailBody: string
   proposalText: string
   status: "draft" | "reviewed" | "sent"
+  attachments?: string[] // Array of asset IDs
   createdAt: string
 }
 
